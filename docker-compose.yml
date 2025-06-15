@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # Metabase instance for testing
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase-local
+    ports:
+      - "3000:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase
+      MB_DB_PORT: 5432
+      MB_DB_USER: metabase
+      MB_DB_PASS: mysecretpassword
+      MB_DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mcp-network
+    volumes:
+      - metabase-data:/metabase-data
+
+  # PostgreSQL for Metabase metadata
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-local
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: metabase
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: metabase
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Sample database for testing queries
+  sample-db:
+    image: postgres:15-alpine
+    container_name: sample-db-local
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo123
+      POSTGRES_DB: ecommerce
+    volumes:
+      - ./scripts/sample-data:/docker-entrypoint-initdb.d
+      - sample-data:/var/lib/postgresql/data
+    networks:
+      - mcp-network
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: redis-local
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - mcp-network
+
+  # MCP Server (development mode with hot reload)
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: mcp-server-local
+    ports:
+      - "8080:8080"
+      - "9229:9229"  # Node.js debugger port
+    environment:
+      NODE_ENV: development
+      METABASE_URL: http://metabase:3000
+      METABASE_API_KEY: ${METABASE_API_KEY:-mb_dev_test_key}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: debug
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - node_modules:/app/node_modules
+    depends_on:
+      - metabase
+      - redis
+    networks:
+      - mcp-network
+    command: npm run dev
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  metabase-data:
+  postgres-data:
+  sample-data:
+  redis-data:
+  node_modules:
