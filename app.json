@@ -1,0 +1,48 @@
+{
+  "name": "Metabase MCP Service",
+  "description": "AI-powered natural language interface for Metabase using Model Context Protocol",
+  "keywords": ["metabase", "mcp", "ai", "natural-language", "business-intelligence"],
+  "website": "https://github.com/passwordless-OTP/metabase-mcp-service",
+  "repository": "https://github.com/passwordless-OTP/metabase-mcp-service",
+  "logo": "https://raw.githubusercontent.com/passwordless-OTP/metabase-mcp-service/main/docs/logo.png",
+  "success_url": "/health",
+  "env": {
+    "METABASE_URL": {
+      "description": "URL of your Metabase instance",
+      "value": "https://your-metabase.com",
+      "required": true
+    },
+    "METABASE_API_KEY": {
+      "description": "API key for Metabase access",
+      "required": true
+    },
+    "OPENAI_API_KEY": {
+      "description": "OpenAI API key for natural language processing",
+      "required": true
+    },
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    },
+    "LOG_LEVEL": {
+      "description": "Logging level",
+      "value": "info"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-redis:mini"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+}
